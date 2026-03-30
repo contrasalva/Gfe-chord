@@ -25,21 +25,31 @@ export interface Song {
   updatedAt: string
 }
 
+export interface SetlistShare {
+  id: string
+  setlistId: string
+  userId: string
+  user: Pick<User, 'id' | 'name' | 'email'>
+}
+
+export interface SetlistSong {
+  id: string
+  setlistId: string
+  songId: string
+  order: number
+  transposeOffset: number
+  song: Pick<Song, 'id' | 'title' | 'artist' | 'key' | 'content'>
+}
+
 export interface Setlist {
   id: string
   name: string
   serviceDate?: string | null
   createdById: string
   songs: SetlistSong[]
+  shares: SetlistShare[]
   createdAt: string
   updatedAt: string
-}
-
-export interface SetlistSong {
-  id: string
-  songId: string
-  order: number
-  song: Song
 }
 
 export interface AuthTokens {

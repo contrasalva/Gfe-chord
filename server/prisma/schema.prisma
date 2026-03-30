@@ -27,9 +27,10 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  songs        Song[]
-  setlists     Setlist[]
-  invitesSent  InviteToken[]
+  songs          Song[]
+  setlists       Setlist[]
+  invitesSent    InviteToken[]
+  sharedSetlists SetlistShare[] @relation("SharedSetlists")
 
   @@map("users")
 }
@@ -64,16 +65,17 @@ model Setlist {
 
   createdBy   User          @relation(fields: [createdById], references: [id])
   songs       SetlistSong[]
-  sharedWith  SetlistShare[]
+  shares      SetlistShare[]
 
   @@map("setlists")
 }
 
 model SetlistSong {
-  id        String  @id @default(cuid())
-  setlistId String
-  songId    String
-  order     Int
+  id              String  @id @default(cuid())
+  setlistId       String
+  songId          String
+  order           Int
+  transposeOffset Int     @default(0)
 
   setlist   Setlist @relation(fields: [setlistId], references: [id], onDelete: Cascade)
   song      Song    @relation(fields: [songId], references: [id], onDelete: Cascade)
@@ -90,6 +92,7 @@ model SetlistShare {
   createdAt DateTime @default(now())
 
   setlist   Setlist @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+  user      User    @relation("SharedSetlists", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([setlistId, userId])
   @@map("setlist_shares")

@@ -3,17 +3,10 @@ import { Music, ListMusic, User } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import SongsPage from '../../features/songs/SongsPage'
 import SongDetailPage from '../../features/songs/SongDetailPage'
+import SetlistsPage from '../../features/setlists/SetlistsPage'
+import SetlistDetailPage from '../../features/setlists/SetlistDetailPage'
 
 // Placeholder pages
-function SetlistsPage() {
-  return (
-    <div className="p-6">
-      <h1 className="font-sans text-2xl font-bold text-[#E0E1E3]">Setlists</h1>
-      <p className="text-[#B1B3B1] mt-2">Los repertorios aparecerán aquí.</p>
-    </div>
-  )
-}
-
 function ProfilePage() {
   return (
     <div className="p-6">
@@ -39,13 +32,14 @@ export default function AppLayout() {
           <Route path="/songs" element={<SongsPage />} />
           <Route path="/songs/:id" element={<SongDetailPage />} />
           <Route path="/setlists" element={<SetlistsPage />} />
+          <Route path="/setlists/:id" element={<SetlistDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </main>
 
       {/* Bottom nav (móvil) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#2a2d2a] border-t border-[#353835]
-                      md:hidden z-50">
+                      pb-[env(safe-area-inset-bottom)] md:hidden z-50">
         <div className="flex items-center justify-around h-16">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink

@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 
 import authRoutes from './routes/auth.routes'
 import songRoutes from './routes/songs.routes'
+import setlistRoutes from './routes/setlists.routes'
 import { errorHandler } from './middleware/error.middleware'
 
 dotenv.config()
@@ -26,6 +27,7 @@ app.get('/api/health', (_req, res) => {
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/songs', songRoutes)
+app.use('/api/setlists', setlistRoutes)
 
 // Error handler (siempre al final)
 app.use(errorHandler)

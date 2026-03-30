@@ -46,6 +46,14 @@ export default defineConfig({
               expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
+          {
+            urlPattern: /^http:\/\/localhost:3001\/api\/setlists/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'setlists-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
         ],
       },
     }),
