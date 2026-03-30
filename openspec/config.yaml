@@ -1,0 +1,46 @@
+# openspec/config.yaml
+schema: spec-driven
+project: gfe-chord
+description: PWA cancionero digital para iglesia
+
+context: |
+  Monorepo: client/ (React 19, Vite, Tailwind v4, Zustand 5, React Router v7, vite-plugin-pwa)
+  + server/ (Node 24, Express, Prisma + SQLite/PostgreSQL, JWT + RefreshToken rotante, Zod)
+  Auth: roles ADMIN/EDITOR/VIEWER. Formato canciones: ChordPro ([Acorde]letra).
+  Offline: Service Worker cache-first assets, stale-while-revalidate GET /songs.
+  Paleta: #754456 primary, #515486 accent, #1F211F bg dark, #E0E1E3 texto.
+  Layout: feature-based src/features/{auth,songs,setlists,users}. Touch targets ≥44px.
+
+rules:
+  proposal:
+    - Incluir plan de rollback para cambios riesgosos
+    - Identificar módulos afectados (client, server, o ambos)
+    - Indicar si afecta offline/PWA o solo online
+  specs:
+    - Usar formato Given/When/Then para escenarios
+    - Usar RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Incluir escenarios offline cuando el feature toque canciones o setlists
+  design:
+    - Incluir diagramas de secuencia para flujos con JWT o refresh token
+    - Documentar decisiones de arquitectura con rationale
+    - Indicar si el componente es container o presentacional
+  tasks:
+    - Agrupar tareas por capa: server → client → PWA/offline → tests
+    - Numeración jerárquica (1.1, 1.2, etc.)
+    - Tareas pequeñas: completables en una sesión
+  apply:
+    - Seguir patrones existentes del codebase
+    - Cargar skills relevantes: react-19, tailwind-4, zustand-5, typescript, zod-4
+    - TypeScript estricto: sin any, todo tipado explícitamente
+    - Tailwind v4: valores directos en className, NO var() en className
+    - React 19: no useMemo/useCallback innecesariamente
+    - API responses: { ok: true, ...data } o { ok: false, code, message }
+    - Errores server: siempre via AppError + next(err)
+    - Íconos: solo lucide-react, nunca emojis
+  verify:
+    - Ejecutar build cliente y servidor si hay cambios de tipos
+    - Comparar implementación contra cada escenario del spec
+    - Verificar touch targets ≥44px en componentes móvil
+  archive:
+    - Advertir antes de mergear deltas destructivos
+    - Actualizar openspec/specs/ con los delta specs completados

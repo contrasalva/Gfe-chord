@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(VIEWER)
+  isActive     Boolean   @default(true)
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  songs        Song[]
+  setlists     Setlist[]
+  invitesSent  InviteToken[]
+
+  @@map("users")
+}
+
+model Song {
+  id            String   @id @default(cuid())
+  title         String
+  artist        String?
+  key           String?
+  capo          Int      @default(0)
+  bpm           Int?
+  timeSignature String?
+  content       String   // ChordPro format
+  tags          String   @default("[]") // JSON array serializado
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy     User           @relation(fields: [createdById], references: [id])
+  setlistSongs  SetlistSong[]
+
+  @@map("songs")
+}
+
+model Setlist {
+  id          String   @id @default(cuid())
+  name        String
+  serviceDate DateTime?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  songs       SetlistSong[]
+  sharedWith  SetlistShare[]
+
+  @@map("setlists")
+}
+
+model SetlistSong {
+  id        String  @id @default(cuid())
+  setlistId String
+  songId    String
+  order     Int
+
+  setlist   Setlist @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+  song      Song    @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([setlistId, songId])
+  @@unique([setlistId, order])
+  @@map("setlist_songs")
+}
+
+model SetlistShare {
+  id        String  @id @default(cuid())
+  setlistId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  setlist   Setlist @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+
+  @@unique([setlistId, userId])
+  @@map("setlist_shares")
+}
+
+model InviteToken {
+  id          String    @id @default(cuid())
+  email       String?
+  role        Role      @default(VIEWER)
+  token       String    @unique
+  createdById String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  createdBy   User @relation(fields: [createdById], references: [id])
+
+  @@map("invite_tokens")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}

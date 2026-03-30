@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/* ============================================
+   GFE Chord — Design Tokens
+   Paleta: Modern Denver
+   ============================================ */
+@theme {
+  /* Brand colors */
+  --color-primary: #754456;
+  --color-primary-hover: #8a5267;
+  --color-primary-light: #9a6b7a;
+
+  --color-accent: #515486;
+  --color-accent-hover: #636699;
+  --color-accent-light: #7577a8;
+
+  --color-surface: #E0E1E3;
+  --color-surface-dark: #B1B3B1;
+
+  --color-dark: #1F211F;
+  --color-dark-2: #2a2d2a;
+  --color-dark-3: #353835;
+
+  /* Semantic */
+  --color-bg: #1F211F;
+  --color-bg-surface: #2a2d2a;
+  --color-bg-card: #353835;
+
+  --color-text: #E0E1E3;
+  --color-text-muted: #B1B3B1;
+  --color-text-chord: #515486;
+
+  --color-border: #353835;
+  --color-border-light: #454845;
+
+  /* Typography */
+  --font-sans: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* Spacing */
+  --spacing-touch: 44px;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    min-height: 100svh;
+  }
+
+  #root {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-dark-2);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-light);
+    border-radius: 2px;
+  }
+
+  /* Focus visible */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* ============================================
+   Google Fonts
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
