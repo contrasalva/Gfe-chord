@@ -5,6 +5,7 @@ import SongsPage from '../../features/songs/SongsPage'
 import SongDetailPage from '../../features/songs/SongDetailPage'
 import SetlistsPage from '../../features/setlists/SetlistsPage'
 import SetlistDetailPage from '../../features/setlists/SetlistDetailPage'
+import Sidebar from './Sidebar'
 
 // Placeholder pages
 function ProfilePage() {
@@ -24,9 +25,13 @@ const navItems = [
 
 export default function AppLayout() {
   return (
-    <div className="flex flex-col min-h-svh bg-[#1F211F]">
+    <div className="flex min-h-svh bg-[#1F211F]">
+
+      {/* Sidebar (desktop) — extracted to Sidebar.tsx */}
+      <Sidebar />
+
       {/* Contenido principal */}
-      <main className="flex-1 pb-16 md:pb-0">
+      <main className="flex-1 min-w-0 pb-16 md:pb-0 overflow-y-auto">
         <Routes>
           <Route path="/" element={<SongsPage />} />
           <Route path="/songs" element={<SongsPage />} />
@@ -38,7 +43,7 @@ export default function AppLayout() {
       </main>
 
       {/* Bottom nav (móvil) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#2a2d2a] border-t border-[#353835]
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#2A2D2A] border-t border-[#3A3D3A]
                       pb-[env(safe-area-inset-bottom)] md:hidden z-50">
         <div className="flex items-center justify-around h-16">
           {navItems.map(({ to, icon: Icon, label }) => (
@@ -47,7 +52,7 @@ export default function AppLayout() {
               to={to}
               className={({ isActive }) =>
                 `flex flex-col items-center gap-1 px-4 py-2 cursor-pointer
-                 transition-colors min-w-[44px] min-h-[44px] justify-center
+                 transition-colors duration-200 min-w-[44px] min-h-[44px] justify-center
                  ${isActive ? 'text-[#754456]' : 'text-[#B1B3B1] hover:text-[#E0E1E3]'}`
               }
             >
@@ -57,6 +62,7 @@ export default function AppLayout() {
           ))}
         </div>
       </nav>
+
     </div>
   )
 }

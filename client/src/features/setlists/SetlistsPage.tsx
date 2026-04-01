@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ListMusic, ChevronRight, Plus, Calendar } from 'lucide-react'
+import { ListMusic, ChevronRight, Plus, Calendar, Pin, PinOff } from 'lucide-react'
 import { setlistsService } from './setlists.service'
 import { useAuthStore } from '../../store/auth.store'
+import { useSetlistsStore } from '../../store/setlists.store'
 import type { Setlist } from '../../shared/types'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -65,39 +66,58 @@ function EmptyState({ canCreate, onCreate }: EmptyStateProps) {
 
 interface SetlistCardProps {
   setlist: Setlist
+  isPinned: boolean
   onClick: (id: string) => void
+  onPin: (setlist: Setlist) => void
+  onUnpin: (id: string) => void
 }
 
-function SetlistCard({ setlist, onClick }: SetlistCardProps) {
+function SetlistCard({ setlist, isPinned, onClick, onPin, onUnpin }: SetlistCardProps) {
   const songCount = setlist.songs.length
   const songLabel = songCount === 1 ? '1 canción' : `${songCount} canciones`
 
   return (
-    <button
-      onClick={() => onClick(setlist.id)}
-      className="w-full bg-[#2A2D2A] rounded-xl p-4 cursor-pointer
-                 border border-[#3A3D3A] transition-colors duration-200
-                 hover:bg-[#333633] active:bg-[#333633]
-                 flex items-center justify-between gap-3 text-left
-                 min-h-[44px]"
-    >
-      <div className="flex flex-col gap-1 flex-1 min-w-0">
-        <span className="text-[#E0E1E3] font-semibold text-base truncate">
-          {setlist.name}
-        </span>
-        <span className="text-[#B1B3B1] text-sm flex items-center gap-1.5">
-          {setlist.serviceDate && (
-            <>
-              <Calendar size={13} className="shrink-0 text-[#B1B3B1]" />
-              <span>{formatDate(setlist.serviceDate)}</span>
-              <span>·</span>
-            </>
-          )}
-          <span>{songLabel}</span>
-        </span>
-      </div>
-      <ChevronRight size={20} className="text-[#B1B3B1] shrink-0" />
-    </button>
+    <div className="w-full bg-[#2A2D2A] rounded-xl border border-[#3A3D3A] flex items-center gap-2">
+      <button
+        onClick={() => onClick(setlist.id)}
+        className="flex-1 min-w-0 p-4 cursor-pointer
+                   transition-colors duration-200
+                   hover:bg-[#333633] active:bg-[#333633]
+                   flex items-center justify-between gap-3 text-left
+                   rounded-xl min-h-[44px]"
+      >
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
+          <span className="text-[#E0E1E3] font-semibold text-base truncate">
+            {setlist.name}
+          </span>
+          <span className="text-[#B1B3B1] text-sm flex items-center gap-1.5">
+            {setlist.serviceDate && (
+              <>
+                <Calendar size={13} className="shrink-0 text-[#B1B3B1]" />
+                <span>{formatDate(setlist.serviceDate)}</span>
+                <span>·</span>
+              </>
+            )}
+            <span>{songLabel}</span>
+          </span>
+        </div>
+        <ChevronRight size={20} className="text-[#B1B3B1] shrink-0" />
+      </button>
+
+      {/* Pin / Unpin button */}
+      <button
+        onClick={() => isPinned ? onUnpin(setlist.id) : onPin(setlist)}
+        className="flex items-center justify-center min-w-[44px] min-h-[44px] mr-2
+                   rounded-lg text-[#B1B3B1] hover:text-[#754456]
+                   hover:bg-[#333633] transition-colors duration-200 cursor-pointer shrink-0"
+        aria-label={isPinned ? `Desfijar ${setlist.name}` : `Fijar ${setlist.name}`}
+      >
+        {isPinned
+          ? <PinOff size={16} className="text-[#754456]" />
+          : <Pin size={16} />
+        }
+      </button>
+    </div>
   )
 }
 
@@ -225,6 +245,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
 export default function SetlistsPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { addRecentSetlist, pinnedSetlistIds, pinSetlist, unpinSetlist } = useSetlistsStore()
   const [setlists, setSetlists] = useState<Setlist[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -254,6 +275,8 @@ export default function SetlistsPage() {
   }, [])
 
   const handleCardClick = (id: string) => {
+    const setlist = setlists.find((s) => s.id === id)
+    if (setlist) addRecentSetlist({ id: setlist.id, name: setlist.name })
     navigate(`/setlists/${id}`)
   }
 
@@ -327,7 +350,13 @@ export default function SetlistsPage() {
           <ul className="flex flex-col gap-3">
             {setlists.map((setlist) => (
               <li key={setlist.id}>
-                <SetlistCard setlist={setlist} onClick={handleCardClick} />
+                <SetlistCard
+                  setlist={setlist}
+                  isPinned={pinnedSetlistIds.some((p) => p.id === setlist.id)}
+                  onClick={handleCardClick}
+                  onPin={(s) => pinSetlist({ id: s.id, name: s.name })}
+                  onUnpin={unpinSetlist}
+                />
               </li>
             ))}
           </ul>

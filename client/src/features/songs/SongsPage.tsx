@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Music, ChevronRight } from 'lucide-react'
-import { songsService } from './songs.service'
+import { Search, Music } from 'lucide-react'
+import { useSongsStore } from '../../store/songs.store'
+import { groupSongsByLetter } from '../../shared/utils/groupSongsByLetter'
+import AlphabeticAccordion from '../../shared/components/AlphabeticAccordion'
 import type { Song } from '../../shared/types'
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────
@@ -36,17 +38,17 @@ function EmptyState({ hasSearch }: { hasSearch: boolean }) {
   )
 }
 
-// ─── Song Item ─────────────────────────────────────────────────────────────
+// ─── Song Item (for flat search results) ─────────────────────────────────────
 
 interface SongItemProps {
   song: Song
-  onClick: (id: string) => void
+  onClick: (song: Song) => void
 }
 
-function SongItem({ song, onClick }: SongItemProps) {
+export function SongItem({ song, onClick }: SongItemProps) {
   return (
     <button
-      onClick={() => onClick(song.id)}
+      onClick={() => onClick(song)}
       className="w-full flex items-center gap-3 px-4 py-3 border-b border-[#353835]
                  hover:bg-[#2a2d2a] transition-colors duration-200 cursor-pointer
                  text-left min-h-[56px]"
@@ -85,7 +87,6 @@ function SongItem({ song, onClick }: SongItemProps) {
             cpo {song.capo}
           </span>
         )}
-        <ChevronRight size={16} style={{ color: '#454845' }} />
       </div>
     </button>
   )
@@ -95,49 +96,59 @@ function SongItem({ song, onClick }: SongItemProps) {
 
 export default function SongsPage() {
   const navigate = useNavigate()
-  const [songs, setSongs] = useState<Song[]>([])
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  // Ref para el debounce timer
+  const {
+    songs,
+    isLoading,
+    error,
+    searchQuery,
+    searchResults,
+    isSearching,
+    fetchSongs,
+    searchSongs,
+    setSearchQuery,
+  } = useSongsStore()
+
+  // Ref para el debounce timer de búsqueda
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Cargar canciones (con debounce en búsqueda)
+  // Cargar canciones en el montaje inicial
   useEffect(() => {
+    fetchSongs()
+  }, [fetchSongs])
+
+  // Debounce de búsqueda — 300ms
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
     }
 
-    const delay = search.length > 0 ? 300 : 0
-
     debounceRef.current = setTimeout(() => {
-      setLoading(true)
-      setError(null)
+      searchSongs(value)
+    }, value.length > 0 ? 300 : 0)
+  }
 
-      songsService
-        .getAll(search ? { search } : undefined)
-        .then((data) => {
-          setSongs(data)
-        })
-        .catch(() => {
-          setError('No se pudieron cargar las canciones')
-        })
-        .finally(() => {
-          setLoading(false)
-        })
-    }, delay)
-
+  // Cleanup debounce al desmontar
+  useEffect(() => {
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [search])
+  }, [])
 
-  const handleSongClick = (id: string) => {
-    navigate(`/songs/${id}`)
+  const isSearchActive = searchQuery.length > 0
+  const isAnyLoading = isLoading || isSearching
+  const displayedError = error
+
+  const handleSongClick = (song: Song) => {
+    navigate(`/songs/${song.id}`)
   }
+
+  // Agrupar canciones para el acordeón (solo cuando NO hay búsqueda activa)
+  const groups = isSearchActive ? [] : groupSongsByLetter(songs)
 
   return (
     <div className="flex flex-col min-h-svh" style={{ backgroundColor: '#1F211F' }}>
@@ -164,8 +175,8 @@ export default function SongsPage() {
             <input
               type="search"
               placeholder="Buscar canciones..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#454845]
                          text-sm focus:outline-none focus:border-[#515486]
                          focus:ring-1 focus:ring-[#515486] transition-colors"
@@ -180,7 +191,8 @@ export default function SongsPage() {
 
       {/* Contenido */}
       <main className="flex-1">
-        {loading && (
+        {/* Loading skeletons */}
+        {isAnyLoading && (
           <div>
             {Array.from({ length: 8 }).map((_, i) => (
               <SongSkeleton key={i} />
@@ -188,24 +200,38 @@ export default function SongsPage() {
           </div>
         )}
 
-        {!loading && error && (
+        {/* Error */}
+        {!isAnyLoading && displayedError && (
           <div className="px-4 py-8 text-center">
-            <p className="text-sm" style={{ color: '#B1B3B1' }}>{error}</p>
+            <p className="text-sm" style={{ color: '#B1B3B1' }}>{displayedError}</p>
           </div>
         )}
 
-        {!loading && !error && songs.length === 0 && (
-          <EmptyState hasSearch={search.length > 0} />
+        {/* Sin búsqueda activa → Acordeón alfabético */}
+        {!isAnyLoading && !displayedError && !isSearchActive && (
+          songs.length === 0 ? (
+            <EmptyState hasSearch={false} />
+          ) : (
+            <AlphabeticAccordion
+              groups={groups}
+              onSongClick={handleSongClick}
+            />
+          )
         )}
 
-        {!loading && !error && songs.length > 0 && (
-          <ul>
-            {songs.map((song) => (
-              <li key={song.id}>
-                <SongItem song={song} onClick={handleSongClick} />
-              </li>
-            ))}
-          </ul>
+        {/* Con búsqueda activa → Lista flat de resultados */}
+        {!isAnyLoading && !displayedError && isSearchActive && (
+          searchResults.length === 0 ? (
+            <EmptyState hasSearch={true} />
+          ) : (
+            <ul>
+              {searchResults.map((song) => (
+                <li key={song.id}>
+                  <SongItem song={song} onClick={handleSongClick} />
+                </li>
+              ))}
+            </ul>
+          )
         )}
       </main>
     </div>

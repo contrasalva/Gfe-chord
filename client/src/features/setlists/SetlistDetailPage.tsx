@@ -10,6 +10,8 @@ import {
   GripVertical,
   Calendar,
   Minus,
+  Pin,
+  PinOff,
 } from 'lucide-react'
 import {
   DndContext,
@@ -198,7 +200,7 @@ export default function SetlistDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { setActiveSetlist, moveSongIndex } = useSetlistsStore()
+  const { setActiveSetlist, moveSongIndex, addRecentSetlist, pinnedSetlistIds, pinSetlist, unpinSetlist } = useSetlistsStore()
 
   const [setlist, setSetlist] = useState<Setlist | null>(null)
   const [loading, setLoading] = useState(true)
@@ -224,6 +226,7 @@ export default function SetlistDetailPage() {
       .getById(id)
       .then(({ data }) => {
         setSetlist(data.setlist)
+        addRecentSetlist({ id: data.setlist.id, name: data.setlist.name })
       })
       .catch(() => {
         setError('No se pudo cargar el setlist')
@@ -391,6 +394,29 @@ export default function SetlistDetailPage() {
                 </span>
               </button>
             )}
+
+            {/* Pin / Unpin */}
+            {(() => {
+              const isPinned = pinnedSetlistIds.some((p) => p.id === setlist.id)
+              return (
+                <button
+                  onClick={() =>
+                    isPinned
+                      ? unpinSetlist(setlist.id)
+                      : pinSetlist({ id: setlist.id, name: setlist.name })
+                  }
+                  className="flex items-center justify-center min-w-[44px] min-h-[44px]
+                             rounded-lg hover:bg-[#2A2D2A] transition-colors
+                             duration-200 cursor-pointer"
+                  aria-label={isPinned ? 'Desfijar setlist' : 'Fijar setlist'}
+                >
+                  {isPinned
+                    ? <PinOff size={18} className="text-[#754456]" />
+                    : <Pin size={18} className="text-[#B1B3B1]" />
+                  }
+                </button>
+              )
+            })()}
 
             {/* Owner/Admin actions */}
             {isOwnerOrAdmin && (

@@ -7,10 +7,6 @@ interface ChordRendererProps {
 // Una línea de sección tiene SOLO un token entre corchetes (puede tener espacios dentro)
 const SECTION_REGEX = /^\[([^\]]+)\]$/
 
-// Regex para encontrar acordes inline dentro de una línea de letra
-// Ej: "[G]Santo, [D]Santo" — captura [G], [D], etc.
-const CHORD_INLINE_REGEX = /\[([^\]]+)\]/g
-
 /**
  * Determina si una línea es un heading de sección.
  * Una sección tiene exactamente un par de corchetes que ocupa toda la línea.
@@ -21,9 +17,12 @@ function isSectionLine(line: string): boolean {
 
 /**
  * Determina si una línea contiene acordes inline (tiene corchetes pero no es sección).
+ * IMPORTANTE: NO usar una variable regex module-level con flag /g para .test() —
+ * el flag 'g' hace que el regex sea stateful (lastIndex persiste entre llamadas)
+ * y produce falsos negativos intermitentes. Se crea una instancia nueva cada vez.
  */
 function hasInlineChords(line: string): boolean {
-  return CHORD_INLINE_REGEX.test(line) && !isSectionLine(line)
+  return /\[([^\]]+)\]/.test(line) && !isSectionLine(line)
 }
 
 interface ChordSegment {
@@ -106,14 +105,14 @@ function ChordLine({ line, transpose }: ChordLineProps) {
         >
           {/* Acorde encima */}
           <span
-            className="font-mono text-sm font-medium leading-tight"
-            style={{ color: '#515486', minHeight: '1.25rem' }}
+            className="font-mono text-[10px] sm:text-xs md:text-sm font-medium leading-tight"
+            style={{ color: '#7DAACC', minHeight: '1.1rem' }}
           >
             {seg.chord ? transpose(seg.chord) : '\u00A0'}
           </span>
           {/* Letra debajo */}
           <span
-            className="font-body text-base leading-tight"
+            className="font-body text-xs sm:text-sm md:text-base leading-tight"
             style={{ color: '#E0E1E3' }}
           >
             {seg.lyric || '\u00A0'}
@@ -128,10 +127,10 @@ function ChordLine({ line, transpose }: ChordLineProps) {
  * Renderiza una línea de letra pura (sin acordes).
  */
 function LyricLine({ line }: { line: string }) {
-  if (line.trim() === '') return <div className="h-4" />
+  if (line.trim() === '') return <div className="h-3 sm:h-4" />
   return (
     <p
-      className="font-body text-base leading-relaxed"
+      className="font-body text-xs sm:text-sm md:text-base leading-relaxed"
       style={{ color: '#E0E1E3' }}
     >
       {line}
@@ -145,7 +144,7 @@ function LyricLine({ line }: { line: string }) {
 function SectionHeading({ label }: { label: string }) {
   return (
     <h3
-      className="font-sans text-sm font-semibold uppercase tracking-wider mt-6 mb-2 first:mt-0"
+      className="font-sans text-[10px] sm:text-xs md:text-sm font-semibold uppercase tracking-wider mt-4 sm:mt-6 mb-1.5 sm:mb-2 first:mt-0"
       style={{ color: '#B1B3B1' }}
     >
       {label}

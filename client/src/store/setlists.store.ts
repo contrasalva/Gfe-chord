@@ -2,12 +2,25 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Setlist } from '../shared/types'
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+export const MAX_RECENT_SETLISTS = 5
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface SetlistRef {
+  id: string
+  name: string
+}
+
 // ─── State interface ────────────────────────────────────────────────────────
 
 interface SetlistsState {
   // ── Persisted ─────────────────────────────────────────────────────────────
   activeSetlistId: string | null
   currentSongIndex: number
+  pinnedSetlistIds: SetlistRef[]
+  recentSetlistIds: SetlistRef[]
 
   // ── Ephemeral (NOT persisted) ─────────────────────────────────────────────
   /** songId → temporary transposition delta for the current session */
@@ -39,6 +52,13 @@ interface SetlistsState {
   decrementSessionDelta: (songId: string) => void
   /** Reset all session deltas (called when loading a new setlist) */
   resetSessionDeltas: () => void
+
+  /** Pin a setlist by id+name (idempotent) */
+  pinSetlist: (ref: SetlistRef) => void
+  /** Unpin a setlist by id */
+  unpinSetlist: (id: string) => void
+  /** Add a setlist to recents — LIFO, max 5, deduped */
+  addRecentSetlist: (ref: SetlistRef) => void
 }
 
 // ─── Store ──────────────────────────────────────────────────────────────────
@@ -49,6 +69,8 @@ export const useSetlistsStore = create<SetlistsState>()(
       // Persisted
       activeSetlistId: null,
       currentSongIndex: 0,
+      pinnedSetlistIds: [],
+      recentSetlistIds: [],
 
       // Ephemeral
       sessionDeltas: {},
@@ -128,6 +150,29 @@ export const useSetlistsStore = create<SetlistsState>()(
         })),
 
       resetSessionDeltas: () => set({ sessionDeltas: {} }),
+
+      // ── Pinned / Recent setlists ─────────────────────────────────────────
+
+      pinSetlist: (ref) =>
+        set((state) => ({
+          pinnedSetlistIds: state.pinnedSetlistIds.some((p) => p.id === ref.id)
+            ? state.pinnedSetlistIds
+            : [...state.pinnedSetlistIds, ref],
+        })),
+
+      unpinSetlist: (id) =>
+        set((state) => ({
+          pinnedSetlistIds: state.pinnedSetlistIds.filter((p) => p.id !== id),
+        })),
+
+      addRecentSetlist: (ref) =>
+        set((state) => {
+          // Remove existing entry (dedupe), prepend, cap at MAX_RECENT_SETLISTS
+          const filtered = state.recentSetlistIds.filter((r) => r.id !== ref.id)
+          return {
+            recentSetlistIds: [ref, ...filtered].slice(0, MAX_RECENT_SETLISTS),
+          }
+        }),
     }),
     {
       name: 'gfe-chord-setlists',
@@ -135,6 +180,8 @@ export const useSetlistsStore = create<SetlistsState>()(
       partialize: (state) => ({
         activeSetlistId: state.activeSetlistId,
         currentSongIndex: state.currentSongIndex,
+        pinnedSetlistIds: state.pinnedSetlistIds,
+        recentSetlistIds: state.recentSetlistIds,
       }),
     }
   )

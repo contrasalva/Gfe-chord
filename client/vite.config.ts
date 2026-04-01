@@ -1,10 +1,18 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
+    typecheck: {
+      tsconfig: './tsconfig.test.json',
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -39,22 +47,20 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^http:\/\/localhost:3001\/api\/songs/,
-            handler: 'StaleWhileRevalidate',
+            // GET de canciones y setlists: NetworkFirst para que ediciones se reflejen de inmediato.
+            // Fallback a cache solo cuando no hay red (modo offline real).
+            urlPattern: /\/api\/(songs|setlists)/,
+            handler: 'NetworkFirst',
             options: {
-              cacheName: 'songs-cache',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            },
-          },
-          {
-            urlPattern: /^http:\/\/localhost:3001\/api\/setlists/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'setlists-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              cacheName: 'api-cache-v2',
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 },
             },
           },
         ],
+      },
+      devOptions: {
+        enabled: false, // deshabilitar SW en desarrollo — evita caching de respuestas de API
       },
     }),
   ],
