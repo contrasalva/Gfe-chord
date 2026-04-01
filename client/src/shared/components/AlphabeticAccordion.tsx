@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { useDraggable } from '@dnd-kit/core'
 import type { Song } from '../types'
 import type { SongGroup } from '../utils/groupSongsByLetter'
 
@@ -48,6 +49,8 @@ interface AlphabeticAccordionProps {
   groups: SongGroup[]
   onSongClick: (song: Song) => void
   compact?: boolean
+  /** When true, songs can be dragged to the active setlist drop zone (non-VIEWER roles only) */
+  draggable?: boolean
 }
 
 // ─── Letter Header ────────────────────────────────────────────────────────────
@@ -119,18 +122,28 @@ interface SongRowProps {
   song: Song
   onSongClick: (song: Song) => void
   compact: boolean
+  draggable: boolean
 }
 
-function SongRow({ song, onSongClick, compact }: SongRowProps) {
+function SongRow({ song, onSongClick, compact, draggable }: SongRowProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: song.id,
+    data: { song },
+    disabled: !draggable,
+  })
+
   return (
     <button
+      ref={setNodeRef}
       onClick={() => onSongClick(song)}
       className={`
         w-full flex items-center justify-between
         border-b border-[#353835] last:border-b-0
         hover:bg-[#2A2D2A] transition-colors duration-200 cursor-pointer text-left
         ${compact ? 'px-3 py-2.5 min-h-[44px]' : 'px-4 py-2.5 min-h-[44px]'}
+        ${isDragging ? 'opacity-50' : ''}
       `}
+      {...(draggable ? { ...attributes, ...listeners } : {})}
     >
       <div className="flex-1 min-w-0">
         <p
@@ -163,6 +176,7 @@ export default function AlphabeticAccordion({
   groups,
   onSongClick,
   compact = false,
+  draggable = false,
 }: AlphabeticAccordionProps) {
   // All closed by default
   const [expandedLetters, setExpandedLetters] = useState<Set<string>>(new Set())
@@ -210,6 +224,7 @@ export default function AlphabeticAccordion({
                     song={song}
                     onSongClick={onSongClick}
                     compact={compact}
+                    draggable={draggable}
                   />
                 ))}
               </div>

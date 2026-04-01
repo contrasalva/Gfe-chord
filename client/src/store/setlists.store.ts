@@ -29,6 +29,10 @@ interface SetlistsState {
   activeSetlist: Setlist | null
   isLoading: boolean
   error: string | null
+  /** id of the setlist currently open in SetlistDetailPage, null if not on detail page */
+  viewingSetlistId: string | null
+  /** timestamp (Date.now()) of the last time a song was added via drag-and-drop */
+  lastAddedAt: number
 
   // ── Actions ───────────────────────────────────────────────────────────────
   setSetlists: (setlists: Setlist[]) => void
@@ -59,6 +63,11 @@ interface SetlistsState {
   unpinSetlist: (id: string) => void
   /** Add a setlist to recents — LIFO, max 5, deduped */
   addRecentSetlist: (ref: SetlistRef) => void
+
+  /** Set the currently viewed setlist id (set on mount, cleared on unmount of SetlistDetailPage) */
+  setViewingSetlistId: (id: string | null) => void
+  /** Notify that a song was added via drag-and-drop — updates lastAddedAt to trigger reload */
+  notifySetlistUpdated: () => void
 }
 
 // ─── Store ──────────────────────────────────────────────────────────────────
@@ -78,6 +87,8 @@ export const useSetlistsStore = create<SetlistsState>()(
       activeSetlist: null,
       isLoading: false,
       error: null,
+      viewingSetlistId: null,
+      lastAddedAt: 0,
 
       // ── Basic setters ────────────────────────────────────────────────────
 
@@ -173,6 +184,12 @@ export const useSetlistsStore = create<SetlistsState>()(
             recentSetlistIds: [ref, ...filtered].slice(0, MAX_RECENT_SETLISTS),
           }
         }),
+
+      // ── DnD Sidebar integration ──────────────────────────────────────────
+
+      setViewingSetlistId: (id) => set({ viewingSetlistId: id }),
+
+      notifySetlistUpdated: () => set({ lastAddedAt: Date.now() }),
     }),
     {
       name: 'gfe-chord-setlists',

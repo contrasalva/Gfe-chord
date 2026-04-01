@@ -20,6 +20,7 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  useDroppable,
   type DragEndEvent,
 } from '@dnd-kit/core'
 import {
@@ -200,7 +201,7 @@ export default function SetlistDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { setActiveSetlist, moveSongIndex, addRecentSetlist, pinnedSetlistIds, pinSetlist, unpinSetlist } = useSetlistsStore()
+  const { setActiveSetlist, moveSongIndex, addRecentSetlist, pinnedSetlistIds, pinSetlist, unpinSetlist, setViewingSetlistId, lastAddedAt } = useSetlistsStore()
 
   const [setlist, setSetlist] = useState<Setlist | null>(null)
   const [loading, setLoading] = useState(true)
@@ -216,6 +217,26 @@ export default function SetlistDetailPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   )
+
+  // ── Droppable zone for sidebar DnD ────────────────────────────────────────
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: 'setlist-drop-zone' })
+
+  // Register/unregister this setlist as the active drop target
+  useEffect(() => {
+    if (!id) return
+    setViewingSetlistId(id)
+    return () => {
+      setViewingSetlistId(null)
+    }
+  }, [id])
+
+  // Reload setlist when a song is added via drag-and-drop
+  useEffect(() => {
+    if (lastAddedAt > 0) {
+      loadSetlist()
+    }
+  }, [lastAddedAt])
 
   const loadSetlist = () => {
     if (!id) return
@@ -447,7 +468,8 @@ export default function SetlistDetailPage() {
 
       {/* Content */}
       <main
-        className="flex-1 px-4 py-4 pb-24"
+        ref={setDropRef}
+        className={`flex-1 px-4 py-4 pb-24 transition-colors duration-200 ${isOver ? 'ring-2 ring-inset ring-[#754456]' : ''}`}
         style={{ overscrollBehavior: 'contain' }}
       >
         {loading && <DetailSkeleton />}

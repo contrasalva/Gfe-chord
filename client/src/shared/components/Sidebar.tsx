@@ -3,6 +3,7 @@ import { useNavigate, NavLink } from 'react-router-dom'
 import { Music, ListMusic, User, Pin, PinOff, Clock } from 'lucide-react'
 import { useSongsStore } from '../../store/songs.store'
 import { useSetlistsStore } from '../../store/setlists.store'
+import { useAuthStore } from '../../store/auth.store'
 import AlphabeticAccordion from './AlphabeticAccordion'
 import { groupSongsByLetter } from '../utils/groupSongsByLetter'
 import type { Song } from '../types'
@@ -19,6 +20,9 @@ const navItems = [
 
 export default function Sidebar() {
   const navigate = useNavigate()
+
+  // Auth store — used to determine drag permission
+  const { user } = useAuthStore()
 
   // Songs store
   const { songs, isLoading, fetchSongs } = useSongsStore()
@@ -100,6 +104,7 @@ export default function Sidebar() {
             groups={groups}
             onSongClick={handleSongClick}
             compact
+            draggable={user?.role !== 'VIEWER'}
           />
         )}
 

@@ -1,11 +1,34 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import AlphabeticAccordion from './AlphabeticAccordion'
 import type { SongGroup } from '../utils/groupSongsByLetter'
 import type { Song } from '../types'
 
+// ─── DnD Kit mock ─────────────────────────────────────────────────────────────
+// Mock useDraggable to avoid needing a real DndContext in most tests.
+// The mock is defined at module level and overridden in drag-specific suites.
+
+const mockSetNodeRef = vi.fn()
+
+vi.mock('@dnd-kit/core', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useDraggable: vi.fn(() => ({
+    attributes: {} as any,
+    listeners: {},
+    setNodeRef: mockSetNodeRef,
+    isDragging: false,
+    transform: null,
+    node: { current: null },
+    over: null,
+    active: null,
+  })),
+}))
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Import the mocked useDraggable so we can control its return value in drag tests
+import { useDraggable } from '@dnd-kit/core'
 
 function makeSong(id: string, title: string): Song {
   return {
@@ -37,7 +60,8 @@ const groups: SongGroup[] = [
 
 function renderAccordion(
   onSongClick = vi.fn(),
-  compact = false
+  compact = false,
+  draggable = false
 ) {
   return render(
     <MemoryRouter>
@@ -45,9 +69,15 @@ function renderAccordion(
         groups={groups}
         onSongClick={onSongClick}
         compact={compact}
+        draggable={draggable}
       />
     </MemoryRouter>
   )
+}
+
+/** Expand letter A so SongRow items are in the DOM */
+function expandA() {
+  fireEvent.click(screen.getByRole('button', { name: /^A/ }))
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -126,5 +156,83 @@ describe('AlphabeticAccordion', () => {
       </MemoryRouter>
     )
     expect(screen.getByText(/no hay canciones/i)).toBeInTheDocument()
+  })
+})
+
+// ─── Drag behavior tests ──────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const makeDraggableMock = (isDragging = false): any => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  attributes: {} as any,
+  listeners: {},
+  setNodeRef: mockSetNodeRef,
+  isDragging,
+  transform: null,
+  node: { current: null },
+  over: null,
+  active: null,
+})
+
+describe('AlphabeticAccordion — draggable prop', () => {
+  beforeEach(() => {
+    vi.mocked(useDraggable).mockReturnValue(makeDraggableMock())
+  })
+
+  it('draggable=false (default): SongRow renders without opacity-50', () => {
+    renderAccordion(vi.fn(), false, false)
+    expandA()
+    const rows = screen.getAllByRole('button', { name: /Amazing Grace|Alpha/i })
+    rows.forEach((row) => {
+      expect(row.className).not.toContain('opacity-50')
+    })
+  })
+
+  it('draggable=false: useDraggable is called with disabled=true', () => {
+    renderAccordion(vi.fn(), false, false)
+    expandA()
+    // useDraggable should have been called with disabled: true for each song
+    expect(useDraggable).toHaveBeenCalledWith(
+      expect.objectContaining({ disabled: true })
+    )
+  })
+
+  it('draggable=true: useDraggable is called with disabled=false', () => {
+    renderAccordion(vi.fn(), false, true)
+    expandA()
+    expect(useDraggable).toHaveBeenCalledWith(
+      expect.objectContaining({ disabled: false })
+    )
+  })
+
+  it('draggable=true: SongRow renders without opacity-50 when not dragging', () => {
+    renderAccordion(vi.fn(), false, true)
+    expandA()
+    const rows = screen.getAllByRole('button', { name: /Amazing Grace|Alpha/i })
+    rows.forEach((row) => {
+      expect(row.className).not.toContain('opacity-50')
+    })
+  })
+
+  it('draggable=true: SongRow has opacity-50 when isDragging=true', () => {
+    vi.mocked(useDraggable).mockReturnValue(makeDraggableMock(true))
+
+    renderAccordion(vi.fn(), false, true)
+    expandA()
+
+    // At least one row should have opacity-50 when isDragging is true
+    const rows = screen.getAllByRole('button', { name: /Amazing Grace|Alpha/i })
+    const draggingRow = rows.find((row) => row.className.includes('opacity-50'))
+    expect(draggingRow).toBeDefined()
+  })
+
+  it('draggable=true: SongRow data includes song reference', () => {
+    renderAccordion(vi.fn(), false, true)
+    expandA()
+    expect(useDraggable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ song: expect.objectContaining({ id: 'a1' }) }),
+      })
+    )
   })
 })

@@ -63,7 +63,7 @@ The system MUST automatically track the last N visited setlists and display them
 
 ---
 
-## 4. Non-Functional Requirements
+## 4. Non-Functional Requirements (NFR)
 
 ### Requirement: NFR-001 Accessibility
 Accordion headers and sidebar links MUST have a minimum touch target size of 44x44px. All interactive elements MUST be keyboard navigable (Tab/Enter/Space).
@@ -76,17 +76,63 @@ The new Sidebar MUST NOT be rendered on mobile devices (screens smaller than the
 
 ---
 
-## 5. Out of Scope
+## 5. Sidebar Drag and Drop
+
+### Requirement: Drag from Sidebar to Setlist Detail
+
+The system MUST allow dragging a song from the sidebar and dropping it into the SetlistDetailPage droppable zone.
+The feature MUST be available only on desktop viewports (`md:` breakpoint and above).
+The system MUST NOT allow dropping a song if it is already present in the setlist.
+The system MUST NOT allow a user with VIEWER permissions to drag songs.
+
+#### Scenario: Drag song to empty setlist
+- GIVEN the user is on desktop and viewing an empty SetlistDetailPage with EDITOR/OWNER permissions
+- WHEN the user drags a song from the sidebar and drops it in the setlist droppable zone
+- THEN the song is added to the setlist
+- AND a success toast is displayed
+
+#### Scenario: Drag song to populated setlist
+- GIVEN the user is on desktop and viewing a SetlistDetailPage containing existing songs with EDITOR/OWNER permissions
+- WHEN the user drags a song from the sidebar and drops it in the setlist droppable zone
+- THEN the song is added at the end of the setlist
+- AND a success toast is displayed
+
+#### Scenario: Drag duplicate song to setlist
+- GIVEN the user is on desktop and viewing a SetlistDetailPage with EDITOR/OWNER permissions
+- AND a song X already exists in the current setlist
+- WHEN the user drags song X from the sidebar and drops it in the setlist droppable zone
+- THEN the song is NOT added to the setlist
+- AND an informative toast "Ya está en el setlist" is displayed
+
+#### Scenario: Drop outside droppable zone
+- GIVEN the user is on desktop and has EDITOR/OWNER permissions
+- WHEN the user drags a song from the sidebar and drops it outside the SetlistDetailPage droppable zone
+- THEN the drag action is canceled with no effect
+
+#### Scenario: VIEWER attempts to drag
+- GIVEN the user is on desktop and has only VIEWER permissions
+- WHEN the user hovers over or attempts to drag a song from the sidebar
+- THEN the drag action MUST be visually disabled and unavailable
+
+#### Scenario: Drag when not in SetlistDetailPage
+- GIVEN the user is on desktop and viewing a page other than SetlistDetailPage
+- WHEN the user attempts to drag a song from the sidebar
+- THEN the droppable zone MUST NOT be visible or active
+
+---
+
+## 6. Out of Scope
 - Backend, API, or Database changes.
 - Modifications to the mobile bottom navigation bar.
 - Persisting the open/closed state of accordion groups between page visits or refreshes.
 
 ---
 
-## 6. Technical Debt (Warnings from Verification)
+## 7. Technical Debt (Warnings from Verification)
 
 The following items were acknowledged as non-blocking at archive time (`2026-04-01`):
 
 1. **FR-003**: No behavioral/runtime test for the SongsPage accordion ↔ flat-list swap during search. Static code review confirmed the implementation. Integration test is pending.
 2. **FR-005/FR-006**: UI/integration test for Sidebar + `localStorage` end-to-end not yet written. Store-level tests cover the contract.
 3. **NFR-002**: No performance validation with large lists has been executed.
+4. **Drag from Sidebar to Setlist Detail**: UX polish items — drag overlay, cursor feedback, and accessible keyboard alternative for drag-and-drop — identified as non-blocking improvements at archive time (`2026-04-01`).
