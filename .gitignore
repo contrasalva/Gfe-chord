@@ -6,3 +6,4 @@ server/prisma/dev.db
 server/prisma/dev.db-journal
 *.db
 *.db-journal
+.opencode/
