@@ -66,7 +66,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: Next
     // Parsear tags y filtrar por tag si se proporcionó
     const result = songs
       .map((song) => ({ ...song, tags: parseTags(song.tags) }))
-      .filter((song) => (tag ? song.tags.includes(tag) : true))
+      .filter((song: { tags: string[] }) => (tag ? song.tags.includes(tag) : true))
 
     res.json({ ok: true, songs: result })
   } catch (err) {

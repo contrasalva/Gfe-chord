@@ -1,5 +1,6 @@
 import { Router, Response, NextFunction } from 'express'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../utils/prisma'
 import { AppError } from '../utils/errors'
 import { authenticate, AuthRequest } from '../middleware/auth.middleware'
@@ -182,7 +183,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: N
 
     // Access check: ADMIN sees all, owner sees own, shared user sees shared
     const isOwner = setlist.createdById === userId
-    const isShared = setlist.shares.some((s) => s.userId === userId)
+    const isShared = setlist.shares.some((s: { userId: string }) => s.userId === userId)
 
     if (role !== 'ADMIN' && !isOwner && !isShared) {
       throw new AppError(403, 'Sin permisos para ver esta setlist', 'FORBIDDEN')
@@ -297,7 +298,7 @@ router.post(
       const data = addSongSchema.parse(req.body)
 
       // Check for duplicate
-      const isDuplicate = setlist.songs.some((s) => s.songId === data.songId)
+      const isDuplicate = setlist.songs.some((s: { songId: string }) => s.songId === data.songId)
       if (isDuplicate) {
         throw new AppError(409, 'La canción ya está en la setlist', 'DUPLICATE_SONG')
       }
@@ -309,7 +310,7 @@ router.post(
       }
 
       const nextOrder = setlist.songs.length > 0
-        ? Math.max(...setlist.songs.map((s) => s.order)) + 1
+        ? Math.max(...setlist.songs.map((s: { order: number }) => s.order)) + 1
         : 0
 
       const setlistSong = await prisma.setlistSong.create({
@@ -360,7 +361,7 @@ router.delete(
       }
 
       // Find the SetlistSong record by its own ID (songId param is the SetlistSong.id)
-      const setlistSong = setlist.songs.find((s) => s.id === songId)
+      const setlistSong = setlist.songs.find((s: { id: string }) => s.id === songId)
       if (!setlistSong) {
         throw new AppError(404, 'Canción no encontrada en la setlist', 'NOT_FOUND')
       }
@@ -369,12 +370,12 @@ router.delete(
 
       // Close the order gap: reassign orders for songs after the deleted one
       const songsAfter = setlist.songs
-        .filter((s) => s.id !== songId && s.order > setlistSong.order)
-        .sort((a, b) => a.order - b.order)
+        .filter((s: { id: string; order: number }) => s.id !== songId && s.order > setlistSong.order)
+        .sort((a: { order: number }, b: { order: number }) => a.order - b.order)
 
       if (songsAfter.length > 0) {
         await prisma.$transaction(
-          songsAfter.map((s, i) =>
+          songsAfter.map((s: { id: string }, i: number) =>
             prisma.setlistSong.update({
               where: { id: s.id },
               data: { order: setlistSong.order + i },
@@ -470,7 +471,7 @@ router.put(
       const { songs } = reorderSchema.parse(req.body)
 
       // Use $transaction with temp negative orders to avoid unique constraint collisions
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Phase 1: set all to negative temp orders
         for (let i = 0; i < songs.length; i++) {
           await tx.setlistSong.update({
